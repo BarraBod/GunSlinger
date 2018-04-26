@@ -2,38 +2,38 @@
 var app = require('express')();
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
+var mongo = require('mongodb');
+//var mongoose = require("mongoose");
+
 var players = [];
 var counter = 0;
+var playerReadyCounter = 0;
+
 
 server.listen(8080, function(){
 	console.log("Server is now running...");
 });
 
+//mongoose.connect("mongodb://localhose/mongo");
+
 io.on('connection', function(socket){
 	console.log("Player Connected!");
-	players.push(new player(0, 0));
+	players.push(new player(0, 0, 0));
+	
 	socket.emit('socketID', { id: socket.id });
 	socket.emit('getPlayers', players);
 
 	if(players[0].id == 0){
 	players[0].id = socket.id;
+	socket.emit("playerID", {playerID: 0});
 	}
 	else if(players[1].id == 0){
 		players[1].id = socket.id;
+		socket.emit("playerID", {playerID: 1});
 	}
 	else{
 		console.log("error adding socket id")
 	}
-
-	if(players.length == 2){
-		randomNumberFunction();
-	}
-
- function randomNumberFunction(){
- 	    var random = Math.floor(Math.random() * (6 - 1 + 1)) + 1;
-		return random;
- }
-
 
 	socket.broadcast.emit('newPlayer', { id: socket.id });
 	socket.on('disconnect', function(){
@@ -71,51 +71,46 @@ io.on('connection', function(socket){
 		}
 
 	
-
 			if(counter >= 2){
 
+				var winner = players[0].playerScore < players[1].playerScore? 0: 1; // assume that playerScore will never be the same
+ 				 players[winner].score++;
+ 				 if(players[winner].score == 3){
+ 				 	console.log("player" + players[winner].id + " has won");
+ 				 }else{
+ 				 console.log(`Player ${winner} won!`);
+ 				 socket.broadcast.emit("playerScore", {playerScore: winner});
+ 				 socket.emit("playerScore", {playerScore: winner});
+ 				 counter = 0;}
+ 				}
 
-	            if(players[0].playerScore > players[1].playerScore && players[0].id == socket.id){
-	           	 loser();
-				 counter = 0;
-				 }
-	              else if(players[0].playerScore < players[1].playerScore && players[0].id == socket.id){
-	              winner();
-	              counter = 0;
-	               }
-	              else if(players[1].playerScore > players[0].playerScore && players[1].id == socket.id){
-	              loser();
-	              counter = 0;
-	               }
-	              else if(players[1].playerScore < players[0].playerScore && players[1].id == socket.id){
-	              winner();
-	              counter = 0;
-	              }
-	              else{
-	              console.log("Error emitting score");
-	                }
+			
+	});
 
-				}
-
-			function winner(){
-			  socket.broadcast.emit("playerScore", {playerScore: "loser"});
-			  socket.emit("playerScore", {playerScore: "winner"});
-			}
-
-			function loser(){
-			 socket.broadcast.emit("playerScore", {playerScore: "winner"});
-			 socket.emit("playerScore", {playerScore: "loser"});
-			}
+	socket.on("playerReady", function(){
+		socket.broadcast.emit("oponentReady");
+		console.log(socket.id + " is ready");
+		playerReadyCounter++;
+		if(playerReadyCounter >= 2){
+			randomNumberFunction();
+			playerReadyCounter = 0;
+		}
 
 	});
 
-
+function randomNumberFunction(){
+ 	    var random = Math.floor(Math.random() * (6 - 1 + 1)) + 1;
+		return random;
+ }
+ 
 });
 
-function player(id, playerScore){
+function player(id, playerScore, score){
 	this.id = id;
 	this.playerScore = playerScore;
+	this.score = score;
 };
+
 
 
 
