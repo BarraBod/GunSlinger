@@ -1,8 +1,7 @@
-
 var app = require('express')();
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
-var mongo = require('mongodb');
+//var mongo = require('mongodb');
 //var mongoose = require("mongoose");
 
 var players = [];
@@ -100,6 +99,7 @@ io.on('connection', function(socket){
 
 function randomNumberFunction(){
  	    var random = Math.floor(Math.random() * (6 - 1 + 1)) + 1;
+ 	    console.log("number " + random + " generated");
 		return random;
  }
  
